@@ -1,0 +1,27 @@
+name: skinanalyzer
+description: "A new Flutter project."
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  get: ^4.6.6 # Added version for stability
+  flutter_svg: ^2.0.10 # Added version
+  flutter_screenutil: ^5.9.0
+  image_picker: ^1.0.7
+  fl_chart: 0.66.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - Assets/
