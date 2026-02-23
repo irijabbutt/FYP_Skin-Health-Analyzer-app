@@ -38,12 +38,6 @@ class _Bottom_barState extends State<Bottom_bar> {
     Text('Index 2: Profile', style: optionStyle),
   ];
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
