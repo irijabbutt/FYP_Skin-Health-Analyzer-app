@@ -1,164 +1,84 @@
-/*
-    ---------------------------------------
-    Project: Skin Analyzer
-    Date: Jan 08, 2026
-    Developer: Rijab Butt
-    ---------------------------------------
-    Description: Navigation Screen
-*/
+// -----------------------------------------------
+// Project: Skin Health Analyzer
+// File: navigation.dart
+// Description: Bottom navigation bar
+// -----------------------------------------------
+
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../../Utils/values/color.dart';
 import '../Home Screen/homescreen.dart';
-import '../Profile/profile.dart';
 import '../Scan Screen/scan.dart';
+import '../History Screen/history.dart';
+import '../Profile/profile.dart';
 
-// ignore: camel_case_types
-class Bottom_bar extends StatefulWidget {
-  const Bottom_bar({super.key});
+class SkinNavigationBar extends StatefulWidget {
+  const SkinNavigationBar({super.key});
 
   @override
-  State<Bottom_bar> createState() => _Bottom_barState();
+  State<SkinNavigationBar> createState() => _SkinNavigationBarState();
 }
 
-// ignore: camel_case_types
-class _Bottom_barState extends State<Bottom_bar> {
-  int _selectedIndex = 0;
-  static const TextStyle optionStyle = TextStyle(
-    fontSize: 30,
-    fontWeight: FontWeight.bold,
-    color: MyColors.black,
-  );
-  static final List<Widget> _widgetOptions = <Widget>[
+class _SkinNavigationBarState extends State<SkinNavigationBar> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = const [
     SkinHomeScreen(),
     ScanScreen(),
+    HistoryScreen(),
     ProfileScreen(),
-    Text('Index 0: Home', style: optionStyle),
-    Text('Index 1: Scan', style: optionStyle),
-    Text('Index 2: Profile', style: optionStyle),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Center(child: _widgetOptions.elementAt(_selectedIndex)),
-      bottomNavigationBar: BottomAppBar(
-        elevation: 0,
-        padding: EdgeInsets.zero,
-        // shape: CircularNotchedRectangle(),
-        color: MyColors.LightLightLavender,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(32),
-              topRight: Radius.circular(32),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
             ),
-          ),
-          margin: EdgeInsets.symmetric(horizontal: 20),
-          height: Get.height * 0.7,
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      updateTabSelection(0, "Home");
-                    },
-                    iconSize: 27.0,
-                    icon: Icon(
-                      _selectedIndex == 0
-                          ? Icons.home_outlined
-                          : Icons.home_filled,
-                      color: _selectedIndex == 0
-                          ? MyColors.PastelRose
-                          : MyColors.black,
-                    ),
-                  ),
-                  Text(
-                    "Home",
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: _selectedIndex == 0
-                          ? MyColors.black
-                          : MyColors.black,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      updateTabSelection(1, "Scan");
-                    },
-                    iconSize: 27.0,
-                    icon: Icon(
-                      _selectedIndex == 1
-                          ? Icons.center_focus_weak
-                          : Icons.center_focus_strong,
-                      color: _selectedIndex == 1
-                          ? MyColors.PastelRose
-                          : MyColors.black,
-                    ),
-                  ),
-                  Text(
-                    "Scan",
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: _selectedIndex == 1
-                          ? MyColors.black
-                          : MyColors.black,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      updateTabSelection(2, "Profile");
-                    },
-                    iconSize: 27.0,
-                    icon: Icon(
-                      _selectedIndex == 2
-                          ? Icons.person_2_outlined
-                          : Icons.person,
-                      color: _selectedIndex == 2
-                          ? MyColors.PastelRose
-                          : MyColors.black,
-                    ),
-                  ),
-                  Text(
-                    "Profile",
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: _selectedIndex == 2
-                          ? MyColors.black
-                          : MyColors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (i) => setState(() => _currentIndex = i),
+          backgroundColor: Colors.transparent,
+          indicatorColor: MyColors.PastelRose.withOpacity(0.2),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded, color: Color(0xFFAD6579)),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.camera_alt_outlined),
+              selectedIcon:
+                  Icon(Icons.camera_alt_rounded, color: Color(0xFFAD6579)),
+              label: 'Scan',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.history_outlined),
+              selectedIcon:
+                  Icon(Icons.history_rounded, color: Color(0xFFAD6579)),
+              label: 'History',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon:
+                  Icon(Icons.person_rounded, color: Color(0xFFAD6579)),
+              label: 'Profile',
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  void updateTabSelection(int index, String tabName) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    print("Tab selected: $tabName");
   }
 }

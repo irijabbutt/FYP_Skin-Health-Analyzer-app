@@ -1,27 +1,64 @@
 name: skinanalyzer
-description: "A new Flutter project."
+description: "Skin Health Analyzer - AI-powered skin condition detection"
 publish_to: "none"
-version: 0.1.0
+
+version: 2.0.0+1
 
 environment:
-  sdk: ^3.10.7
+  sdk: ^3.5.0
 
 dependencies:
   flutter:
     sdk: flutter
+
+  # UI
   cupertino_icons: ^1.0.8
-  get: ^4.6.6 # Added version for stability
-  flutter_svg: ^2.0.10 # Added version
-  flutter_screenutil: ^5.9.0
-  image_picker: ^1.0.7
-  fl_chart: 0.66.2
+  flutter_svg: ^2.0.10+1
+  flutter_screenutil: ^5.9.3
+  fl_chart: ^0.68.0
+  get: ^4.6.6
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  lottie: ^3.1.2
+
+  # Navigation & State
+  go_router: ^14.2.7
+
+  # Image
+  image_picker: ^1.1.2
+  image: ^4.2.0
+
+  # TFLite inference
+  tflite_flutter: ^0.12.1
+
+  # Supabase
+  supabase_flutter: ^2.5.6
+
+  # HTTP (for n8n webhook)
+  http: ^1.2.2
+  dio: ^5.7.0
+
+  # Storage & utils
+  shared_preferences: ^2.3.2
+  path_provider: ^2.1.4
+  intl: ^0.19.0
+  uuid: ^4.4.2
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
+
   assets:
-    - Assets/
+    - assets/
+
+  # fonts:
+  #   - family: Poppins
+  #     fonts:
+  #       - asset: assets/fonts/Poppins-Regular.ttf
+  #       - asset: assets/fonts/Poppins-Bold.ttf
+  #         weight: 700

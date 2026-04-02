@@ -1,14 +1,7 @@
-/*
-    ---------------------------------------
-    Project: Skin Analyzer
-    Date: Jan 05, 2026
-    Developer: Rijab Butt
-    ---------------------------------------
-    Description: Widgets
-*/
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:skinanalyzer/Utils/values/color.dart';
 
 /// Reusable Input Field
@@ -53,7 +46,6 @@ Widget summaryCard(String title, String subtitle, String img) {
         color: MyColors.white,
         borderRadius: BorderRadius.circular(20),
       ),
-
       child: Column(
         children: [
           Image.asset(img),
@@ -106,7 +98,6 @@ Widget tipsCard(String title, String subtitle, String image) {
   );
 }
 
-
 Widget tile(String title, IconData icon) {
   return Container(
     margin: const EdgeInsets.only(bottom: 14),
@@ -137,7 +128,6 @@ Widget tile(String title, IconData icon) {
     ),
   );
 }
-
 
 Widget actionButton({
   required IconData icon,
@@ -220,7 +210,6 @@ Widget topPill({
   );
 }
 
-
 Widget progressCard({
   required String title,
   required int value,
@@ -257,17 +246,14 @@ Widget progressCard({
             const Icon(Icons.arrow_forward_ios, size: 14),
           ],
         ),
-
         const SizedBox(height: 12),
-
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: LinearProgressIndicator(
             value: value / 100,
             minHeight: 8,
             backgroundColor: const Color(0xFFE0E0E0),
-            valueColor:
-            const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
           ),
         ),
       ],

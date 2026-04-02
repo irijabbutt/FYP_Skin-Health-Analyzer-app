@@ -2,7 +2,7 @@
     ---------------------------------------
     Project: Skin Analyzer
     Date: Jan 05, 2026
-    Developer: Rijab Butt
+    Developer: Mirza Ibtisam
     ---------------------------------------
     Description: Get Started Screen
 */

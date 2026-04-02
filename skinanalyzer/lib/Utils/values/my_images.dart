@@ -7,11 +7,11 @@
     Description: custom images
   */
 class MyImages {
-  static const String FrontImage = "Assets/Skin_img.webp";
-  static const String HomePic = "Assets/Home_Pic.png";
-  static const String SkinSummary = "Assets/Skin-Summary.jpeg";
-  static const String SkinSummary2 = "Assets/Skin_Summary_2.jpeg";
-  static const String SkinCare = "Assets/Skin_Care_Tips.png";
-  static const String SkinCare1 = "Assets/Skin_Care_Tips1.png";
-  static const String Picture = "Assets/Picture.jpg";
+  static const String FrontImage = "assets/Skin_img.webp";
+  static const String HomePic = "assets/Home_Pic.png";
+  static const String SkinSummary = "assets/Skin-Summary.jpeg";
+  static const String SkinSummary2 = "assets/Skin_Summary_2.jpeg";
+  static const String SkinCare = "assets/Skin_Care_Tips.png";
+  static const String SkinCare1 = "assets/Skin_Care_Tips1.png";
+  static const String Picture = "assets/Picture.jpg";
 }
