@@ -1,134 +1,79 @@
 // -----------------------------------------------
 // Project: Skin Health Analyzer
 // File: app_config.dart
-// Description: Central configuration for all services
+// OPTIMIZED VERSION (Enhanced 23-Class Model Integration)
 // -----------------------------------------------
 
 class AppConfig {
   AppConfig._();
 
-  // ── Supabase ──────────────────────────────────
-  // Replace with your actual Supabase project URL and anon key
   static const String supabaseUrl = 'https://linyyumczsneiiuwcirk.supabase.co';
   static const String supabaseAnonKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpbnl5dW1jenNuZWlpdXdjaXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MTEwMDUsImV4cCI6MjA4MzE4NzAwNX0.7xsKyi1KYdUCyEs66T-etErY4IlgOML8jRlB99cmlgA';
 
-  // Supabase table name
-  static const String scanResultsTable = 'scan_results';
-
-  // ── n8n Webhook ───────────────────────────────
-  // Replace with your n8n webhook URL
-  // Example: https://your-n8n-instance.com/webhook/skin-analyzer
+  static const String scanResultsTable = 'skin_results';
   static const String n8nWebhookUrl =
       'https://n8n.ddukan.pk/webhook/SHA-recommendations';
 
-  // ── TFLite Model ─────────────────────────────
-  static const String tfliteModelPath =
-      'assets/model/finetune_skin_analyzer_model_keras.tflite';
-  static const int inputSize = 224;
-  static const int numClasses = 23;
+  // Updated target asset path for the new dynamic range quantized model
+  static const String tfliteModelPath = 'assets/model/model_dr_quant.tflite';
+  static const int inputSize = 300; // EfficientNetB3 base target image resolution
+  static const int numClasses = 23; // Expanded target matrix capacity
 
-  // ── DermNet 23 Class Labels ───────────────────
+  // Strict PyTorch ImageFolder alphabetical label map array
   static const List<String> classLabels = [
-    'Acne and Rosacea',
-    'Actinic Keratosis & Malignant Lesions',
-    'Atopic Dermatitis',
-    'Bullous Disease',
-    'Cellulitis & Bacterial Infections',
-    'Eczema',
+    'Acne and Rosacea Photos',
+    'Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions',
+    'Atopic Dermatitis Photos',
+    'Bullous Disease Photos',
+    'Cellulitis Impetigo and other Bacterial Infections',
+    'Eczema Photos',
     'Exanthems and Drug Eruptions',
-    'Hair Loss & Alopecia',
-    'Herpes, HPV & STDs',
-    'Light Diseases & Pigmentation',
-    'Lupus & Connective Tissue',
-    'Melanoma, Nevi & Moles',
-    'Nail Fungus & Nail Disease',
-    'Poison Ivy & Contact Dermatitis',
-    'Psoriasis & Lichen Planus',
-    'Scabies & Infestations',
-    'Seborrheic Keratoses & Benign Tumors',
+    'Hair Loss Photos Alopecia and other Hair Diseases',
+    'Herpes HPV and other STDs Photos',
+    'Light Diseases and Disorders of Pigmentation',
+    'Lupus and other Connective Tissue diseases',
+    'Melanoma Skin Cancer Nevi and Moles',
+    'Nail Fungus and other Nail Disease',
+    'Poison Ivy Photos and other Contact Dermatitis',
+    'Psoriasis pictures Lichen Planus and related diseases',
+    'Scabies Lyme Disease and other Infestations and Bites',
+    'Seborrheic Keratoses and other Benign Tumors',
     'Systemic Disease',
-    'Tinea, Ringworm & Fungal Infections',
-    'Urticaria (Hives)',
+    'Tinea Ringworm Candidiasis and other Fungal Infections',
+    'Urticaria Hives',
     'Vascular Tumors',
-    'Vasculitis',
-    'Warts, Molluscum & Viral Infections',
+    'Vasculitis Photos',
+    'Warts Molluscum and other Viral Infections',
   ];
 
-  // ── Condition descriptions ────────────────────
-  static const Map<String, String> conditionDescriptions = {
-    'Acne and Rosacea':
-        'Common skin conditions causing pimples, redness, and inflammation. Often treatable with topical medications.',
-    'Actinic Keratosis & Malignant Lesions':
-        'Pre-cancerous rough patches caused by sun exposure. May require medical treatment.',
-    'Atopic Dermatitis':
-        'Chronic eczema causing itchy, inflamed skin. Often linked to allergies and immune response.',
-    'Bullous Disease':
-        'Blistering conditions that form fluid-filled sacs on skin. May require systemic treatment.',
-    'Cellulitis & Bacterial Infections':
-        'Bacterial skin infections causing redness, swelling, and pain. Usually treated with antibiotics.',
-    'Eczema':
-        'Inflammatory skin condition causing redness and itching. Often managed with moisturizers and steroids.',
-    'Exanthems and Drug Eruptions':
-        'Widespread rash often caused by viral infections or medication reactions.',
-    'Hair Loss & Alopecia':
-        'Conditions causing partial or complete hair loss. Multiple types exist with different treatments.',
-    'Herpes, HPV & STDs':
-        'Viral skin infections. Requires medical evaluation and appropriate treatment.',
-    'Light Diseases & Pigmentation':
-        'Skin conditions affecting pigmentation, often triggered by sun exposure.',
-    'Lupus & Connective Tissue':
-        'Autoimmune conditions affecting skin and connective tissues. Requires specialist care.',
-    'Melanoma, Nevi & Moles':
-        'Pigmented skin lesions. Melanoma is serious — seek medical evaluation urgently.',
-    'Nail Fungus & Nail Disease':
-        'Fungal or structural nail infections. Usually treated with antifungal medications.',
-    'Poison Ivy & Contact Dermatitis':
-        'Allergic skin reaction from contact with irritants or allergens.',
-    'Psoriasis & Lichen Planus':
-        'Chronic inflammatory skin conditions causing scaly patches and plaques.',
-    'Scabies & Infestations':
-        'Parasitic skin infestations causing intense itching. Treated with prescription medications.',
-    'Seborrheic Keratoses & Benign Tumors':
-        'Benign skin growths. Usually harmless but can be removed for cosmetic reasons.',
-    'Systemic Disease':
-        'Skin manifestations of internal diseases. Requires comprehensive medical evaluation.',
-    'Tinea, Ringworm & Fungal Infections':
-        'Fungal skin infections. Usually treated with topical or oral antifungal medications.',
-    'Urticaria (Hives)':
-        'Itchy welts on skin, often caused by allergic reactions. Usually temporary.',
-    'Vascular Tumors':
-        'Blood vessel abnormalities in skin. Range from benign birthmarks to conditions needing treatment.',
-    'Vasculitis':
-        'Inflammation of blood vessels in skin. Requires medical investigation.',
-    'Warts, Molluscum & Viral Infections':
-        'Viral skin conditions causing growths or lesions. Many resolve on their own.',
-  };
+  static const String labelDiseaseUndetected = 'Condition Undetected';
+  static const double confidenceThreshold = 0.50; // Aligned with the model validation curve threshold
+  static const int maxRecommendations = 10;
 
-  // ── Urgency levels ────────────────────────────
-  static const Map<String, String> conditionUrgency = {
-    'Acne and Rosacea': 'low',
-    'Actinic Keratosis & Malignant Lesions': 'high',
-    'Atopic Dermatitis': 'medium',
-    'Bullous Disease': 'high',
-    'Cellulitis & Bacterial Infections': 'high',
-    'Eczema': 'low',
-    'Exanthems and Drug Eruptions': 'medium',
-    'Hair Loss & Alopecia': 'low',
-    'Herpes, HPV & STDs': 'high',
-    'Light Diseases & Pigmentation': 'low',
-    'Lupus & Connective Tissue': 'high',
-    'Melanoma, Nevi & Moles': 'high',
-    'Nail Fungus & Nail Disease': 'low',
-    'Poison Ivy & Contact Dermatitis': 'low',
-    'Psoriasis & Lichen Planus': 'medium',
-    'Scabies & Infestations': 'medium',
-    'Seborrheic Keratoses & Benign Tumors': 'low',
-    'Systemic Disease': 'high',
-    'Tinea, Ringworm & Fungal Infections': 'low',
-    'Urticaria (Hives)': 'medium',
-    'Vascular Tumors': 'medium',
-    'Vasculitis': 'high',
-    'Warts, Molluscum & Viral Infections': 'low',
+  static const Map<String, String> conditionDescriptions = {
+    'Acne and Rosacea Photos': 'Inflammatory face or skin conditions displaying pimples, redness, or bumps.',
+    'Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions': 'Pre-cancerous or malignant growths. Medical evaluation is highly recommended.',
+    'Atopic Dermatitis Photos': 'Flaky, intensely itchy skin conditions linked to immune reactivity.',
+    'Bullous Disease Photos': 'Blistering conditions affecting skin surfaces or delicate tissue areas.',
+    'Cellulitis Impetigo and other Bacterial Infections': 'Bacterial skin surface invasions causing swelling, pain, or crusted areas.',
+    'Eczema Photos': 'Irritated, scaling, or dry skin patches reactive to structural or environmental triggers.',
+    'Exanthems and Drug Eruptions': 'Widespread systemic rashes or reactions linked to viral states or medications.',
+    'Hair Loss Photos Alopecia and other Hair Diseases': 'Follicle thinning, localized structural hair loss, or scalp irritation.',
+    'Herpes HPV and other STDs Photos': 'Viral manifestations causing distinct surface sores or raised viral lesions.',
+    'Light Diseases and Disorders of Pigmentation': 'UV-induced skin changes or irregularities in localized melanin production.',
+    'Lupus and other Connective Tissue diseases': 'Autoimmune skin changes, including distinct facial or geometric target rashes.',
+    'Melanoma Skin Cancer Nevi and Moles': 'Atypical pigmented moles or direct structural skin malignancies requiring professional review.',
+    'Nail Fungus and other Nail Disease': 'Fungal infections causing thick, brittle, or discolored nail plates.',
+    'Poison Ivy Photos and other Contact Dermatitis': 'Localized acute inflammation or micro-blisters triggered by contact allergens.',
+    'Psoriasis pictures Lichen Planus and related diseases': 'Accelerated skin renewal causing thick silver plaques or purple-toned bumps.',
+    'Scabies Lyme Disease and other Infestations and Bites': 'Eruptions triggered by parasitic skin mites, insect vectors, or ticks.',
+    'Seborrheic Keratoses and other Benign Tumors': 'Non-cancerous raised surface lesions, often waxy or deeply colored.',
+    'Systemic Disease': 'Cutaneous markers indicating broader internal organ or metabolic system conditions.',
+    'Tinea Ringworm Candidiasis and other Fungal Infections': 'Superficial fungal conditions showing ring-like configurations or raw friction areas.',
+    'Urticaria Hives': 'Transient, raised red wheals or systemic hives from allergic triggers.',
+    'Vascular Tumors': 'Benign structural clusters of blood vessels close to the skin surface.',
+    'Vasculitis Photos': 'Inflamed blood vessels presenting as distinct purple spots or patches.',
+    'Warts Molluscum and other Viral Infections': 'Highly contagious localized viral skin anomalies causing firm nodules or warts.',
   };
 }

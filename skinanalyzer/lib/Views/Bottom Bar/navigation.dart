@@ -4,6 +4,8 @@
 // Description: Bottom navigation bar
 // -----------------------------------------------
 
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../../Utils/values/color.dart';
 import '../Home Screen/homescreen.dart';

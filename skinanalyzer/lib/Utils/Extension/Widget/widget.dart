@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
+// ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:skinanalyzer/Utils/values/color.dart';
 
 /// Reusable Input Field

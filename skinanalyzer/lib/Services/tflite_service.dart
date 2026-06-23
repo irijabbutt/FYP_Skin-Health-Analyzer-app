@@ -1,12 +1,8 @@
-// -----------------------------------------------
-// Project: Skin Health Analyzer
-// File: tflite_service.dart
-// Description: On-device TFLite skin condition inference
-// -----------------------------------------------
+// ignore_for_file: curly_braces_in_flow_control_structures, avoid_print
 
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
-import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
@@ -21,7 +17,6 @@ class TFLiteService {
   Interpreter? _interpreter;
   bool _isLoaded = false;
 
-  // ── Load model ────────────────────────────────
   Future<void> loadModel() async {
     if (_isLoaded) return;
     try {
@@ -30,78 +25,117 @@ class TFLiteService {
         AppConfig.tfliteModelPath,
         options: options,
       );
+      _interpreter?.allocateTensors();
       _isLoaded = true;
-      print('[TFLite] Model loaded successfully');
-      print('[TFLite] Input: ${_interpreter!.getInputTensor(0).shape}');
-      print('[TFLite] Output: ${_interpreter!.getOutputTensor(0).shape}');
+      print(
+          '[TFLite] Dynamic Range Quantized 23-Class model successfully initialized.');
     } catch (e) {
-      print('[TFLite] Error loading model: $e');
+      print('[TFLite] Initialization breakdown: $e');
       rethrow;
     }
   }
 
-  // ── Run inference ─────────────────────────────
   Future<List<TopPrediction>> predict(File imageFile) async {
     if (!_isLoaded) await loadModel();
+    if (_interpreter == null)
+      throw Exception("Interpreter allocated with null state");
 
     try {
-      // 1. Load & preprocess image
       final imageBytes = await imageFile.readAsBytes();
-      final image = img.decodeImage(imageBytes);
-      if (image == null) throw Exception('Could not decode image');
+      final originalImage = img.decodeImage(imageBytes);
+      if (originalImage == null)
+        throw Exception('Image decoding engine failed');
 
+      // 1. Structural resize conforming to the EfficientNetB3 target canvas
       final resized = img.copyResize(
-        image,
+        originalImage,
         width: AppConfig.inputSize,
         height: AppConfig.inputSize,
+        interpolation: img.Interpolation.linear,
       );
 
-      // 2. Convert to Float32 input tensor [1, 224, 224, 3]
-      //    EfficientNetB0 in Keras expects raw [0–255] float values
-      final inputBuffer = Float32List(
-          1 * AppConfig.inputSize * AppConfig.inputSize * 3);
-      int idx = 0;
-      for (int y = 0; y < AppConfig.inputSize; y++) {
-        for (int x = 0; x < AppConfig.inputSize; x++) {
-          final pixel = resized.getPixel(x, y);
-          inputBuffer[idx++] = pixel.r.toDouble();
-          inputBuffer[idx++] = pixel.g.toDouble();
-          inputBuffer[idx++] = pixel.b.toDouble();
+      // 2. Identify the target shape layout configuration
+      final inputTensor = _interpreter!.getInputTensor(0);
+      final shape = inputTensor.shape;
+      final bool isNCHW = (shape[1] ==
+          3); // Evaluates to true if converted with Channel-First structure
+
+      final input =
+          Float32List(1 * AppConfig.inputSize * AppConfig.inputSize * 3);
+
+      // ImageNet standardization benchmarks
+      const List<double> mean = [0.485, 0.456, 0.406];
+      const List<double> std = [0.229, 0.224, 0.225];
+
+      // 3. Populate and normalize the tensor array sequentially
+      if (isNCHW) {
+        int rIndex = 0;
+        int gIndex = AppConfig.inputSize * AppConfig.inputSize;
+        int bIndex = 2 * AppConfig.inputSize * AppConfig.inputSize;
+
+        for (var y = 0; y < AppConfig.inputSize; y++) {
+          for (var x = 0; x < AppConfig.inputSize; x++) {
+            final pixel = resized.getPixel(x, y);
+            input[rIndex++] = ((pixel.r / 255.0) - mean[0]) / std[0];
+            input[gIndex++] = ((pixel.g / 255.0) - mean[1]) / std[1];
+            input[bIndex++] = ((pixel.b / 255.0) - mean[2]) / std[2];
+          }
+        }
+      } else {
+        int pixelIndex = 0;
+        for (var y = 0; y < AppConfig.inputSize; y++) {
+          for (var x = 0; x < AppConfig.inputSize; x++) {
+            final pixel = resized.getPixel(x, y);
+            input[pixelIndex++] = ((pixel.r / 255.0) - mean[0]) / std[0];
+            input[pixelIndex++] = ((pixel.g / 255.0) - mean[1]) / std[1];
+            input[pixelIndex++] = ((pixel.b / 255.0) - mean[2]) / std[2];
+          }
         }
       }
-      final input = inputBuffer
-          .reshape([1, AppConfig.inputSize, AppConfig.inputSize, 3]);
 
-      // 3. Output buffer [1, 23]
-      final outputBuffer =
-          List.filled(AppConfig.numClasses, 0.0).reshape([1, AppConfig.numClasses]);
+      // 4. Generate the output array matching the 23-class layout
+      var output = Float32List(1 * AppConfig.numClasses)
+          .reshape([1, AppConfig.numClasses]);
 
-      // 4. Run inference
-      _interpreter!.run(input, outputBuffer);
+      // 5. Run interpreter inference using the detected shape signature
+      _interpreter!.run(input.reshape(shape), output);
 
-      // 5. Parse probabilities (model has softmax, values sum to 1)
-      final probabilities = List<double>.from(
-          (outputBuffer as List)[0] as List);
+      // 6. Map logit array positions via Softmax computation
+      List<double> rawScores = List<double>.from(output[0]);
+      List<double> probabilities = _softmax(rawScores);
 
-      // 6. Build sorted predictions
-      final predictions = <TopPrediction>[];
-      for (int i = 0; i < AppConfig.classLabels.length; i++) {
+      List<TopPrediction> predictions = [];
+      for (int i = 0; i < probabilities.length; i++) {
         predictions.add(TopPrediction(
           label: AppConfig.classLabels[i],
           confidence: probabilities[i],
         ));
       }
+
       predictions.sort((a, b) => b.confidence.compareTo(a.confidence));
+
+      // Fallback fallback if the top-ranked score fails to clear our threshold boundary
+      if (predictions.isNotEmpty &&
+          predictions.first.confidence < AppConfig.confidenceThreshold) {
+        return [
+          TopPrediction(
+            label: AppConfig.labelDiseaseUndetected,
+            confidence: predictions.first.confidence,
+          )
+        ];
+      }
 
       return predictions.take(5).toList();
     } catch (e) {
-      print('[TFLite] Inference error: $e');
+      print('[TFLite] Runtime inference extraction failure: $e');
       rethrow;
     }
   }
 
-  void dispose() {
-    _interpreter?.close();
-    _isLoaded = false;
+  List<double> _softmax(List<double> logits) {
+    double maxLogit = logits.reduce(math.max);
+    List<double> exps = logits.map((l) => math.exp(l - maxLogit)).toList();
+    double sumExps = exps.fold(0, (a, b) => a + b);
+    return exps.map((e) => e / sumExps).toList();
   }
 }

@@ -1,8 +1,11 @@
 // -----------------------------------------------
 // Project: Skin Health Analyzer
 // File: n8n_service.dart
-// Description: Sends scan results to n8n webhook
+// FIX: Extracts nested outer['recommendations'] map before fromJson.
+//      Also splits comma-separated string fields into proper lists.
 // -----------------------------------------------
+
+// ignore_for_file: avoid_print
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -17,93 +20,128 @@ class N8nService {
 
   final _supabase = SupabaseService();
 
-  // ── Send scan result to n8n ───────────────────
-  Future<bool> sendScanResult(ScanResult result) async {
+  Future<N8nRecommendation?> getRecommendations({
+    required String condition,
+    required double confidence,
+    required String description,
+    String urgency = 'low',
+    List<TopPrediction>? allPredictions,
+  }) async {
+    // Skip AI recommendations for undetected / special labels
+    if (condition == AppConfig.labelDiseaseUndetected ||
+        condition == 'Healthy Skin') {
+      return null;
+    }
+
     try {
       final user = _supabase.currentUser;
+      final meta = user?.userMetadata;
+
+      final filteredPredictions = (allPredictions ?? [])
+          .where((p) => p.confidence >= AppConfig.confidenceThreshold)
+          .take(AppConfig.maxRecommendations)
+          .map((p) => {
+                'condition': p.label,
+                'confidence_pct': '${(p.confidence * 100).toStringAsFixed(1)}%',
+              })
+          .toList();
+
       final payload = {
-        'event': 'skin_scan_completed',
+        'event': 'get_skincare_recommendations',
         'timestamp': DateTime.now().toIso8601String(),
-        'user_id': user?.id ?? 'anonymous',
-        'user_email': user?.email ?? 'unknown',
-        'scan': {
-          'id': result.id,
-          'condition': result.conditionName,
-          'confidence': result.confidence,
-          'confidence_pct': '${(result.confidence * 100).toStringAsFixed(1)}%',
-          'urgency': result.urgency,
-          'description': result.description,
-          'image_url': result.imageUrl,
-          'top_predictions': result.topPredictions
-              .map((p) => {
-                    'label': p.label,
-                    'confidence': p.confidence,
-                    'confidence_pct':
-                        '${(p.confidence * 100).toStringAsFixed(1)}%',
-                  })
-              .toList(),
-          'created_at': result.createdAt.toIso8601String(),
+        'user': {
+          'user_id': user?.id ?? 'anonymous',
+          'full_name': meta?['full_name'] ?? '',
+          'age': meta?['age'] ?? 0,
+          'email': user?.email ?? '',
         },
-        // App metadata
-        'app': {
-          'name': 'Skin Health Analyzer',
-          'version': '2.0.0',
-          'platform': 'Flutter',
-        },
+        'primary_condition': condition,
+        'primary_confidence_pct': '${(confidence * 100).toStringAsFixed(1)}%',
+        'urgency': urgency,
+        'description': description,
+        'all_predictions': filteredPredictions,
       };
+
+      print('[n8n] → $condition | user: ${meta?['full_name']} age:${meta?['age']}');
 
       final response = await http
-          .post(
-            Uri.parse(AppConfig.n8nWebhookUrl),
-            headers: {
-              'Content-Type': 'application/json',
-              // Optional: add a shared secret for security
-              // 'X-Webhook-Secret': 'your_secret',
-            },
-            body: jsonEncode(payload),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        print('[n8n] Webhook sent successfully: ${response.statusCode}');
-        return true;
-      } else {
-        print('[n8n] Webhook failed: ${response.statusCode} ${response.body}');
-        return false;
-      }
-    } catch (e) {
-      print('[n8n] Webhook error: $e');
-      // Don't throw — n8n failure shouldn't break the app
-      return false;
-    }
-  }
-
-  // ── Send high-urgency alert ───────────────────
-  Future<void> sendUrgencyAlert(ScanResult result) async {
-    if (result.urgency != 'high') return;
-    try {
-      final payload = {
-        'event': 'high_urgency_alert',
-        'user_id': _supabase.userId,
-        'user_email': _supabase.currentUser?.email,
-        'condition': result.conditionName,
-        'confidence': result.confidence,
-        'urgency': result.urgency,
-        'timestamp': DateTime.now().toIso8601String(),
-        'message':
-            'ALERT: High-urgency skin condition detected — ${result.conditionName}. '
-                'Please seek medical advice promptly.',
-      };
-
-      await http
           .post(
             Uri.parse(AppConfig.n8nWebhookUrl),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(payload),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 25));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = response.body.trim();
+        if (body.isEmpty) return null;
+
+        dynamic decoded;
+        try {
+          decoded = jsonDecode(body);
+        } catch (e) {
+          print('[n8n] JSON parse error: $e');
+          return null;
+        }
+
+        // ── Step 1: unwrap array ──────────────────────────────────────
+        // n8n always returns a List: [{ "status": ..., "recommendations": {...} }]
+        Map<String, dynamic>? outer;
+        if (decoded is Map<String, dynamic>) {
+          outer = decoded;
+        } else if (decoded is List && decoded.isNotEmpty) {
+          outer = decoded.first as Map<String, dynamic>;
+        }
+        if (outer == null) {
+          print('[n8n] Could not unwrap outer object');
+          return null;
+        }
+
+        // ── Step 2: extract the nested recommendations map ────────────
+        // Response shape: { "status": "success", "recommendations": { ... } }
+        Map<String, dynamic> recMap;
+        if (outer['recommendations'] is Map<String, dynamic>) {
+          recMap = outer['recommendations'] as Map<String, dynamic>;
+        } else {
+          // Fallback: root itself may be the rec object
+          recMap = outer;
+        }
+
+        print('[n8n] ✓ Rec keys: ${recMap.keys.toList()}');
+        return N8nRecommendation.fromJson(recMap);
+      } else {
+        print('[n8n] Failed ${response.statusCode}: ${response.body}');
+        return null;
+      }
     } catch (e) {
-      print('[n8n] Alert error: $e');
+      print('[n8n] Error: $e');
+      return null;
     }
+  }
+
+  /// Non-blocking scan event log
+  Future<void> logScanEvent(ScanResult result) async {
+    try {
+      final user = _supabase.currentUser;
+      final meta = user?.userMetadata;
+
+      await http
+          .post(
+            Uri.parse(AppConfig.n8nWebhookUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'event': 'skin_scan_logged',
+              'user_id': user?.id,
+              'email': user?.email ?? '',
+              'full_name': meta?['full_name'] ?? '',
+              'age': meta?['age'] ?? 0,
+              'condition': result.conditionName,
+              'confidence': '${(result.confidence * 100).toStringAsFixed(1)}%',
+              'urgency': result.urgency,
+              'created_at': result.createdAt.toIso8601String(),
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+    } catch (_) {}
   }
 }
