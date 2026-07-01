@@ -34,6 +34,7 @@ migrate_working_dir/
 /coverage/
 /lib/main.dart
 lib/Utils/app_config.dart
+skinanalyzer/assets
 
 # Symbolication related
 app.*.symbols
