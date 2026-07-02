@@ -57,8 +57,13 @@ class TFLiteService {
       // 2. Identify the target shape layout configuration
       final inputTensor = _interpreter!.getInputTensor(0);
       final shape = inputTensor.shape;
-      final bool isNCHW = (shape[1] ==
-          3); // Evaluates to true if converted with Channel-First structure
+      
+      // Validate shape has at least 2 dimensions
+      if (shape.length < 2) {
+        throw Exception('Invalid tensor shape: shape has fewer than 2 dimensions');
+      }
+      
+      final bool isNCHW = (shape[1] == 3); // Evaluates to true if NCHW format
 
       final input =
           Float32List(1 * AppConfig.inputSize * AppConfig.inputSize * 3);
@@ -97,8 +102,14 @@ class TFLiteService {
       var output = Float32List(1 * AppConfig.numClasses)
           .reshape([1, AppConfig.numClasses]);
 
-      // 5. Run interpreter inference using the detected shape signature
-      _interpreter!.run(input.reshape(shape), output);
+      // 5. Run interpreter inference with properly formatted input and output
+      try {
+        _interpreter!.run(input.reshape(shape), output);
+      } catch (e) {
+        // If reshape fails, try passing the input directly
+        print('[TFLite] Reshape failed, attempting direct run: $e');
+        _interpreter!.run(input, output);
+      }
 
       // 6. Map logit array positions via Softmax computation
       List<double> rawScores = List<double>.from(output[0]);
@@ -114,7 +125,7 @@ class TFLiteService {
 
       predictions.sort((a, b) => b.confidence.compareTo(a.confidence));
 
-      // Fallback fallback if the top-ranked score fails to clear our threshold boundary
+      // Fallback if the top-ranked score fails to clear the threshold boundary
       if (predictions.isNotEmpty &&
           predictions.first.confidence < AppConfig.confidenceThreshold) {
         return [
