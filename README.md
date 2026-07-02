@@ -13,3 +13,9 @@ The solution will be a cross-platform mobile application developed in Flutter/Da
 # **PRODUCT EXPECTED**
 
 The end product will be a polished and robust Flutter app for the accurate detection and classification of common skin problems using our custom-trained model. The AI-driven personalized treatment recommendations will be provided via Gemini. It will be useful in various scenarios, as it is highly resistant to skin tones and lighting variances. It will be possible to monitor the health of the skin over time and have suggestions for improvement in maintenance. The main goal is to represent a real and reliable application of AI and CV, enabling accessible and tailored skincare.
+
+# **Developer**
+
+**Rijab Butt**
+rijabbutt23@gmail.com
+https://irijabbutt.github.io/
