@@ -1,7 +1,7 @@
 // -----------------------------------------------
 // Project: Skin Health Analyzer
 // File: main.dart
-// Developer: Rijab Butt, Maryam Waheed, Muhammad Mubashir, Azka Naaz
+// Developer: Rijab Butt
 // Description: App entry point with Supabase & TFLite init
 // -----------------------------------------------
 
