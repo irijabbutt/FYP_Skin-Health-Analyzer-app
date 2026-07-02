@@ -50,7 +50,7 @@ class AppConfig {
 
   static const String labelDiseaseUndetected = 'Condition Undetected';
   static const double confidenceThreshold =
-      0.50; // Aligned with the model validation curve threshold
+      0.25; // Aligned with the model validation curve threshold
   static const int maxRecommendations = 10;
 
   static const Map<String, String> conditionDescriptions = {

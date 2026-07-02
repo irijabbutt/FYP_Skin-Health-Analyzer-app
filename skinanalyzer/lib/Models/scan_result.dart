@@ -1,8 +1,8 @@
 // -----------------------------------------------
 // Project: Skin Health Analyzer
 // File: scan_result.dart
-// UPDATED: Added OtcProduct model + N8nRecommendation model
-//          for strongly-typed JSON from n8n/Gemini
+// UPDATED: Synchronized isSpecialClass categories 
+//          with scan.dart interface boundaries
 // -----------------------------------------------
 
 // ignore_for_file: no_leading_underscores_for_local_identifiers
@@ -166,8 +166,11 @@ class ScanResult {
   });
 
   /// Whether this result is for a special non-disease class
+  /// UPDATED: Matches target runtime strings completely
   bool get isSpecialClass =>
+      conditionName == 'Conditions Undetected' ||
       conditionName == 'Normal Skin' ||
+      conditionName == 'Healthy Skin' ||
       conditionName == 'No Skin Issue Detected' ||
       conditionName == 'Ink / Henna on Skin';
 

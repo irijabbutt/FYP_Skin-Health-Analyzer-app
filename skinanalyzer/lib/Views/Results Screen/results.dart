@@ -1,7 +1,8 @@
 // -----------------------------------------------
 // Project: Skin Health Analyzer
 // File: results.dart
-// UPDATED: Added Image.network fallback + synchronized special class routing
+// UPDATED: Dynamic non-disease class descriptions
+//          and robust fallback rendering layout
 // -----------------------------------------------
 
 // ignore_for_file: deprecated_member_use
@@ -67,6 +68,17 @@ class ResultsScreen extends StatelessWidget {
     }
   }
 
+  // Helper method to resolve unique placeholder cards for non-disease results
+  String _getSpecialClassMessage() {
+    if (result.conditionName == AppConfig.labelDiseaseUndetected) {
+      return 'No recognisable skin condition was detected with sufficient confidence. Try retaking the photo in natural light, closer to the affected area.';
+    }
+    if (result.conditionName == 'Ink / Henna on Skin') {
+      return 'Foreign pigments, artificial ink, or decorative henna patterns were detected on the skin surface. No underlying pathological skin condition was recognized.';
+    }
+    return 'Your skin appears normal and healthy! No active disease patterns or risk configurations were detected. Keep up your standard skincare maintenance routine.';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,43 +90,58 @@ class ResultsScreen extends StatelessWidget {
             pinned: true,
             backgroundColor: MyColors.PastelRose,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+              icon:
+                  const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
               onPressed: () => Get.back(),
             ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.share_rounded, color: Colors.white),
                 onPressed: () => Get.snackbar('Share', 'Sharing result...',
-                    backgroundColor: MyColors.PastelRose, colorText: Colors.white),
+                    backgroundColor: MyColors.PastelRose,
+                    colorText: Colors.white),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
               title: const Text('Scan Result',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold)),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Three-tier robust verification loop resolving the visibility fallback bug
-                  result.imagePath.isNotEmpty && File(result.imagePath).existsSync()
+                  result.imagePath.isNotEmpty &&
+                          File(result.imagePath).existsSync()
                       ? Image.file(File(result.imagePath), fit: BoxFit.cover)
                       : (result.imageUrl != null && result.imageUrl!.isNotEmpty)
                           ? Image.network(
                               result.imageUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
                                 color: MyColors.WhiteRose,
-                                child: const Icon(Icons.image_not_supported_outlined, size: 60, color: Colors.white60),
+                                child: const Icon(
+                                    Icons.image_not_supported_outlined,
+                                    size: 60,
+                                    color: Colors.white60),
                               ),
                             )
                           : Container(
                               color: MyColors.WhiteRose,
-                              child: const Icon(Icons.image_not_supported_outlined, size: 60, color: Colors.white60)),
+                              child: const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: 60,
+                                  color: Colors.white60)),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black.withOpacity(0.6)],
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.6)
+                        ],
                       ),
                     ),
                   ),
@@ -129,22 +156,30 @@ class ResultsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: _urgencyColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: _urgencyColor.withOpacity(0.4), width: 1.5),
+                      border: Border.all(
+                          color: _urgencyColor.withOpacity(0.4), width: 1.5),
                     ),
                     child: Row(children: [
                       Icon(_urgencyIcon, color: _urgencyColor),
                       const SizedBox(width: 10),
                       Text(_urgencyLabel,
-                          style: TextStyle(color: _urgencyColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                          style: TextStyle(
+                              color: _urgencyColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14)),
                     ]),
                   ),
                   const SizedBox(height: 20),
                   Text(result.conditionName,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: MyColors.black)),
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: MyColors.black)),
                   const SizedBox(height: 6),
                   Text(
                     DateFormat('MMM d, yyyy • h:mm a').format(result.createdAt),
@@ -158,16 +193,22 @@ class ResultsScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Confidence Score', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                          const Text('Confidence Score',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 15)),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: MyColors.PastelRose.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               '${(result.confidence * 100).toStringAsFixed(1)}%',
-                              style: const TextStyle(color: Color(0xFFAD6579), fontWeight: FontWeight.bold, fontSize: 16),
+                              style: const TextStyle(
+                                  color: Color(0xFFAD6579),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16),
                             ),
                           ),
                         ],
@@ -179,7 +220,8 @@ class ResultsScreen extends StatelessWidget {
                           value: result.confidence,
                           minHeight: 10,
                           backgroundColor: Colors.grey.shade200,
-                          valueColor: const AlwaysStoppedAnimation<Color>(MyColors.PastelRose),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              MyColors.PastelRose),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -189,7 +231,8 @@ class ResultsScreen extends StatelessWidget {
                             : result.confidence > 0.4
                                 ? 'Moderate confidence — consider retaking'
                                 : 'Low confidence — please retake with better lighting',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600),
                       ),
                     ],
                   )),
@@ -198,26 +241,37 @@ class ResultsScreen extends StatelessWidget {
                     _card(
                         child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Icon(
-                          result.conditionName == AppConfig.labelDiseaseUndetected
-                              ? Icons.search_off_rounded
-                              : Icons.check_circle_outline_rounded,
-                          color: result.conditionName == AppConfig.labelDiseaseUndetected
-                              ? Colors.grey.shade400
-                              : Colors.green.shade400,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            result.conditionName == AppConfig.labelDiseaseUndetected
-                                ? 'No recognisable skin condition was detected. Try retaking the photo in natural light, closer to the affected area.'
-                                : 'Your skin appears healthy! No specific recommendations needed. Keep up your current skincare routine.',
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5),
-                          ),
-                        ),
-                      ]),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              result.conditionName ==
+                                      AppConfig.labelDiseaseUndetected
+                                  ? Icons.search_off_rounded
+                                  : result.conditionName ==
+                                          'Ink / Henna on Skin'
+                                      ? Icons.brush_outlined
+                                      : Icons.check_circle_outline_rounded,
+                              color: result.conditionName ==
+                                      AppConfig.labelDiseaseUndetected
+                                  ? Colors.grey.shade400
+                                  : result.conditionName ==
+                                          'Ink / Henna on Skin'
+                                      ? Colors.blueAccent
+                                      : Colors.green.shade400,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _getSpecialClassMessage(),
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                    height: 1.5),
+                              ),
+                            ),
+                          ]),
                     ))
                   else
                     _buildRecommendationsCard(result.parsedRecommendations),
@@ -227,29 +281,41 @@ class ResultsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Row(children: [
-                        Icon(Icons.info_outline_rounded, color: MyColors.PastelRose, size: 20),
+                        Icon(Icons.info_outline_rounded,
+                            color: MyColors.PastelRose, size: 20),
                         SizedBox(width: 8),
-                        Text('About This Condition', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        Text('About This Condition',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 15)),
                       ]),
                       const SizedBox(height: 10),
                       Text(result.description,
-                          style: TextStyle(fontSize: 14, height: 1.6, color: Colors.grey.shade700)),
+                          style: TextStyle(
+                              fontSize: 14,
+                              height: 1.6,
+                              color: Colors.grey.shade700)),
                     ],
                   )),
                   const SizedBox(height: 14),
-                  if (result.topPredictions.isNotEmpty && result.conditionName != AppConfig.labelDiseaseUndetected)
+                  if (result.topPredictions.isNotEmpty &&
+                      result.conditionName != AppConfig.labelDiseaseUndetected)
                     _card(
                         child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Row(children: [
-                          Icon(Icons.bar_chart_rounded, color: MyColors.PastelRose, size: 20),
+                          Icon(Icons.bar_chart_rounded,
+                              color: MyColors.PastelRose, size: 20),
                           SizedBox(width: 8),
-                          Text('All Predictions', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                          Text('All Predictions',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 15)),
                         ]),
                         const SizedBox(height: 14),
                         ...result.topPredictions.asMap().entries.map(
-                              (e) => _predictionBar(e.key + 1, e.value.label, e.value.confidence, isTop: e.key == 0),
+                              (e) => _predictionBar(
+                                  e.key + 1, e.value.label, e.value.confidence,
+                                  isTop: e.key == 0),
                             ),
                       ],
                     )),
@@ -265,15 +331,22 @@ class ResultsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(children: [
-                          Icon(Icons.medical_services_outlined, color: Colors.blue.shade600, size: 18),
+                          Icon(Icons.medical_services_outlined,
+                              color: Colors.blue.shade600, size: 18),
                           const SizedBox(width: 8),
                           Text('Medical Disclaimer',
-                              style: TextStyle(color: Colors.blue.shade800, fontWeight: FontWeight.bold, fontSize: 13)),
+                              style: TextStyle(
+                                  color: Colors.blue.shade800,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13)),
                         ]),
                         const SizedBox(height: 8),
                         Text(
                           'This AI analysis is for educational purposes only and does not constitute a medical diagnosis. Please consult a qualified dermatologist for professional evaluation and treatment.',
-                          style: TextStyle(fontSize: 12, color: Colors.blue.shade700, height: 1.5),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade700,
+                              height: 1.5),
                         ),
                       ],
                     ),
@@ -287,9 +360,11 @@ class ResultsScreen extends StatelessWidget {
                         label: const Text('Scan Again'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: MyColors.PastelRose,
-                          side: const BorderSide(color: MyColors.PastelRose, width: 1.5),
+                          side: const BorderSide(
+                              color: MyColors.PastelRose, width: 1.5),
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
                     ),
@@ -297,12 +372,15 @@ class ResultsScreen extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => Get.offAllNamed('/'),
-                        icon: const Icon(Icons.home_rounded, color: Colors.white),
-                        label: const Text('Dashboard', style: TextStyle(color: Colors.white)),
+                        icon:
+                            const Icon(Icons.home_rounded, color: Colors.white),
+                        label: const Text('Dashboard',
+                            style: TextStyle(color: Colors.white)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: MyColors.PastelRose,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
                     ),
@@ -328,7 +406,8 @@ class ResultsScreen extends StatelessWidget {
           Expanded(
             child: Text(
               'AI recommendations could not be loaded. Check your connection and try scanning again.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+              style: TextStyle(
+                  fontSize: 13, color: Colors.grey.shade600, height: 1.4),
             ),
           ),
         ]),
@@ -340,12 +419,14 @@ class ResultsScreen extends StatelessWidget {
           child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(children: [
-          Icon(Icons.info_outline_rounded, color: Colors.grey.shade400, size: 20),
+          Icon(Icons.info_outline_rounded,
+              color: Colors.grey.shade400, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'No specific recommendations were returned for this condition.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+              style: TextStyle(
+                  fontSize: 13, color: Colors.grey.shade600, height: 1.4),
             ),
           ),
         ]),
@@ -363,12 +444,15 @@ class ResultsScreen extends StatelessWidget {
               color: MyColors.PastelRose.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: MyColors.PastelRose, size: 18),
+            child: const Icon(Icons.auto_awesome_rounded,
+                color: MyColors.PastelRose, size: 18),
           ),
           const SizedBox(width: 10),
           const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('AI Analysis & Guidance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('Powered by Gemini via n8n', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            Text('AI Analysis & Guidance',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('Powered by Gemini via n8n',
+                style: TextStyle(fontSize: 11, color: Colors.grey)),
           ]),
         ]),
         const SizedBox(height: 16),
@@ -378,7 +462,8 @@ class ResultsScreen extends StatelessWidget {
             iconColor: Colors.amber.shade700,
             title: 'Urgency Note',
             bgColor: const Color(0xFFFFF8E1),
-            child: Text(rec.urgencyNote!, style: const TextStyle(fontSize: 13, height: 1.5)),
+            child: Text(rec.urgencyNote!,
+                style: const TextStyle(fontSize: 13, height: 1.5)),
           ),
         if (rec.skincareDo.isNotEmpty)
           _recSection(
@@ -423,7 +508,9 @@ class ResultsScreen extends StatelessWidget {
                 runSpacing: 6,
                 children: rec.avoidIngredients
                     .map((i) => Chip(
-                          label: Text(i, style: TextStyle(fontSize: 11, color: Colors.pink.shade700)),
+                          label: Text(i,
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.pink.shade700)),
                           backgroundColor: Colors.pink.shade50,
                           padding: EdgeInsets.zero,
                         ))
@@ -462,17 +549,31 @@ class ResultsScreen extends StatelessWidget {
                             border: Border.all(color: Colors.grey.shade200),
                           ),
                           child: Row(children: [
-                            const Icon(Icons.local_pharmacy_outlined, color: MyColors.PastelRose, size: 18),
+                            const Icon(Icons.local_pharmacy_outlined,
+                                color: MyColors.PastelRose, size: 18),
                             const SizedBox(width: 10),
                             Expanded(
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                              Text(p.reason, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                            ])),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                  Text(p.name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
+                                  Text(p.reason,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade600)),
+                                ])),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                              decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
-                              child: Text(p.category, style: const TextStyle(fontSize: 10)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8)),
+                              child: Text(p.category,
+                                  style: const TextStyle(fontSize: 10)),
                             ),
                           ]),
                         ))
@@ -481,7 +582,11 @@ class ResultsScreen extends StatelessWidget {
         if (rec.disclaimer != null) ...[
           const SizedBox(height: 12),
           Text(rec.disclaimer!,
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic, height: 1.5)),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade500,
+                  fontStyle: FontStyle.italic,
+                  height: 1.5)),
         ],
       ],
     ));
@@ -497,12 +602,17 @@ class ResultsScreen extends StatelessWidget {
       Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: bgColor, borderRadius: BorderRadius.circular(12)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Icon(icon, size: 16, color: iconColor),
             const SizedBox(width: 7),
-            Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: iconColor)),
+            Text(title,
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: iconColor)),
           ]),
           const SizedBox(height: 8),
           child,
@@ -514,14 +624,20 @@ class ResultsScreen extends StatelessWidget {
         children: items
             .map((item) => Padding(
                   padding: const EdgeInsets.only(bottom: 5),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Container(
-                        width: 6,
-                        height: 6,
-                        margin: const EdgeInsets.only(top: 5, right: 8),
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
-                    Expanded(child: Text(item, style: const TextStyle(fontSize: 13, height: 1.4))),
-                  ]),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.only(top: 5, right: 8),
+                            decoration: BoxDecoration(
+                                shape: BoxShape.circle, color: color)),
+                        Expanded(
+                            child: Text(item,
+                                style: const TextStyle(
+                                    fontSize: 13, height: 1.4))),
+                      ]),
                 ))
             .toList(),
       );
@@ -533,18 +649,28 @@ class ResultsScreen extends StatelessWidget {
             .entries
             .map((e) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Container(
-                      width: 22,
-                      height: 22,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
-                      child: Center(
-                          child: Text('${e.key + 1}',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color))),
-                    ),
-                    Expanded(child: Text(e.value, style: const TextStyle(fontSize: 13, height: 1.4))),
-                  ]),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 22,
+                          height: 22,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                              color: color.withOpacity(0.15),
+                              shape: BoxShape.circle),
+                          child: Center(
+                              child: Text('${e.key + 1}',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: color))),
+                        ),
+                        Expanded(
+                            child: Text(e.value,
+                                style: const TextStyle(
+                                    fontSize: 13, height: 1.4))),
+                      ]),
                 ))
             .toList(),
       );
@@ -555,20 +681,28 @@ class ResultsScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4))
+          ],
         ),
         child: child,
       );
 
-  Widget _predictionBar(int rank, String label, double confidence, {bool isTop = false}) => Padding(
+  Widget _predictionBar(int rank, String label, double confidence,
+          {bool isTop = false}) =>
+      Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(
               width: 22,
               height: 22,
-              decoration:
-                  BoxDecoration(color: isTop ? MyColors.PastelRose : Colors.grey.shade300, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                  color: isTop ? MyColors.PastelRose : Colors.grey.shade300,
+                  shape: BoxShape.circle),
               child: Center(
                   child: Text('$rank',
                       style: TextStyle(
@@ -587,7 +721,8 @@ class ResultsScreen extends StatelessWidget {
             Text('${(confidence * 100).toStringAsFixed(1)}%',
                 style: TextStyle(
                     fontSize: 12,
-                    color: isTop ? const Color(0xFFAD6579) : Colors.grey.shade500,
+                    color:
+                        isTop ? const Color(0xFFAD6579) : Colors.grey.shade500,
                     fontWeight: FontWeight.w600)),
           ]),
           const SizedBox(height: 6),
@@ -599,7 +734,8 @@ class ResultsScreen extends StatelessWidget {
                 value: confidence,
                 minHeight: 6,
                 backgroundColor: Colors.grey.shade100,
-                valueColor: AlwaysStoppedAnimation<Color>(isTop ? MyColors.PastelRose : Colors.grey.shade300),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    isTop ? MyColors.PastelRose : Colors.grey.shade300),
               ),
             ),
           ),

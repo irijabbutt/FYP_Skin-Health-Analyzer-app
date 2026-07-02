@@ -3,6 +3,7 @@
 // File: scan.dart
 // UPDATED: Synchronized special class parsing criteria
 //          + Permanent local-only image persistence implementation
+//          + Complete type-safety updates for model output integration
 // -----------------------------------------------
 
 // ignore_for_file: deprecated_member_use, avoid_print
@@ -11,6 +12,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+
 import '../../Models/scan_result.dart';
 import '../../Services/n8n_service.dart';
 import '../../Services/supabase_service.dart';
@@ -19,8 +23,6 @@ import '../../Utils/app_config.dart';
 import '../../Utils/values/color.dart';
 import '../../Utils/values/my_images.dart';
 import '../Results Screen/results.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -80,6 +82,7 @@ class _ScanScreenState extends State<ScanScreen>
     });
 
     try {
+      // 1. Core Model Inference Run
       final topPredictions = await _tflite.predict(_image!);
       if (topPredictions.isEmpty) throw Exception('No results from model');
 
@@ -87,6 +90,7 @@ class _ScanScreenState extends State<ScanScreen>
       final conditionName = top.label;
       final confidence = top.confidence;
 
+      // 2. Resolve Description Block
       final description = conditionName == AppConfig.labelDiseaseUndetected
           ? 'The AI model could not identify a recognisable skin condition with '
               'sufficient confidence. This may be due to image quality, lighting, '
@@ -95,12 +99,17 @@ class _ScanScreenState extends State<ScanScreen>
           : (AppConfig.conditionDescriptions[conditionName] ??
               'No description available.');
 
+      // 3. Assess Urgency Level
       final urgency = conditionName == AppConfig.labelDiseaseUndetected
           ? 'none'
-          : (conditionName.contains('Malignant') ? 'high' : 'low');
+          : (conditionName.contains('Malignant') ||
+                  conditionName.contains('Cancer')
+              ? 'high'
+              : 'low');
 
       setState(() => _statusText = 'Getting AI recommendations...');
 
+      // 4. Fetch External recommendations via Orchestrator API
       N8nRecommendation? recs;
       if (!_isSpecialClass(conditionName)) {
         recs = await _n8n.getRecommendations(
@@ -114,25 +123,26 @@ class _ScanScreenState extends State<ScanScreen>
 
       setState(() => _statusText = 'Saving to history...');
 
-      // PERSIST IMAGE LOCALLY: Save to permanent app documents directory 
+      // 5. PERSIST IMAGE LOCALLY: Save to permanent app documents directory
       // instead of volatile device cache folder so it never gets deleted.
       String savedLocalPath = _image!.path;
       try {
         final appDir = await getApplicationDocumentsDirectory();
-        final fileName = path.basename(_image!.path); // image_picker names are already unique strings
+        final fileName = path.basename(_image!.path);
         final permanentImage = await _image!.copy('${appDir.path}/$fileName');
         savedLocalPath = permanentImage.path;
       } catch (e) {
         print('[Scan] Local image persistence fallback failed: $e');
       }
 
+      // 6. Instantiate Data Entity Instance Safely
       final scanResult = ScanResult(
         userId: _supabase.userId,
-        imagePath: savedLocalPath, // Pass the safe permanent local path here
+        imagePath: savedLocalPath,
         conditionName: conditionName,
         urgency: urgency,
         confidence: confidence,
-        imageUrl: '', 
+        imageUrl: '',
         description: description,
         topPredictions: topPredictions,
         recommendations: recs?.toJson(),
@@ -140,6 +150,7 @@ class _ScanScreenState extends State<ScanScreen>
         createdAt: DateTime.now(),
       );
 
+      // 7. Save to Cloud Synced Layers and dispatch log states
       if (_supabase.isLoggedIn) {
         await _supabase.saveScanResult(scanResult);
       }
@@ -187,16 +198,22 @@ class _ScanScreenState extends State<ScanScreen>
             child: Column(
               children: [
                 GestureDetector(
-                  onTap: _isAnalyzing ? null : () => _pickImage(ImageSource.gallery),
+                  onTap: _isAnalyzing
+                      ? null
+                      : () => _pickImage(ImageSource.gallery),
                   child: ScaleTransition(
-                    scale: _isAnalyzing ? _pulseAnim : const AlwaysStoppedAnimation(1.0),
+                    scale: _isAnalyzing
+                        ? _pulseAnim
+                        : const AlwaysStoppedAnimation(1.0),
                     child: Container(
                       height: 300,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: MyColors.PastelRose.withOpacity(0.3), width: 2),
+                        border: Border.all(
+                            color: MyColors.PastelRose.withOpacity(0.3),
+                            width: 2),
                         boxShadow: [
                           BoxShadow(
                             color: MyColors.PastelRose.withOpacity(0.1),
@@ -213,10 +230,13 @@ class _ScanScreenState extends State<ScanScreen>
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Image.asset(MyImages.Picture, height: 80, color: MyColors.PastelRose),
+                                Image.asset(MyImages.Picture,
+                                    height: 80, color: MyColors.PastelRose),
                                 const SizedBox(height: 16),
                                 const Text('Tap to Upload Image',
-                                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+                                    style: TextStyle(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w500)),
                               ],
                             ),
                     ),
@@ -226,10 +246,13 @@ class _ScanScreenState extends State<ScanScreen>
                 if (_isAnalyzing) ...[
                   const CircularProgressIndicator(color: MyColors.PastelRose),
                   const SizedBox(height: 16),
-                  Text(_statusText, style: const TextStyle(fontWeight: FontWeight.w600, color: MyColors.black)),
+                  Text(_statusText,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, color: MyColors.black)),
                   const SizedBox(height: 8),
                   Text('Analyzing with AI — this may take a moment',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                 ] else ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -256,11 +279,15 @@ class _ScanScreenState extends State<ScanScreen>
                       onPressed: _image == null ? null : _analyzeImage,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: MyColors.PastelRose,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
                         elevation: 0,
                       ),
                       child: const Text('Start Analysis',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white)),
                     ),
                   ),
                 ],
@@ -274,7 +301,8 @@ class _ScanScreenState extends State<ScanScreen>
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.orange.shade800, size: 20),
+                      Icon(Icons.info_outline,
+                          color: Colors.orange.shade800, size: 20),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
@@ -313,7 +341,9 @@ class _ScanScreenState extends State<ScanScreen>
           children: [
             Icon(icon, color: color, size: 28),
             const SizedBox(height: 6),
-            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
+            Text(label,
+                style: TextStyle(
+                    color: color, fontWeight: FontWeight.w600, fontSize: 13)),
           ],
         ),
       ),

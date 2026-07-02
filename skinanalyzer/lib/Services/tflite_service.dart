@@ -57,14 +57,14 @@ class TFLiteService {
       // 2. Get input tensor and validate shape
       final inputTensor = _interpreter!.getInputTensor(0);
       final shape = inputTensor.shape;
-      
+
       print('[TFLite] Input tensor shape: $shape');
 
       // Validate and determine format
       if (shape.isEmpty) {
         throw Exception('Invalid tensor shape: empty');
       }
-      
+
       // Determine tensor format based on shape
       // Common formats: [1, 300, 300, 3] (NHWC) or [1, 3, 300, 300] (NCHW)
       bool isNCHW = false;
@@ -79,53 +79,57 @@ class TFLiteService {
       const List<double> mean = [0.485, 0.456, 0.406];
       const List<double> std = [0.229, 0.224, 0.225];
 
-      // 3. Populate and normalize the tensor array sequentially
+// 3. CHANGE HERE: Create a structured multi-dimensional list matching [1, 300, 300, 3] or [1, 3, 300, 300]
+      List<dynamic> inputStructure;
+
       if (isNCHW) {
-        // NCHW: Channel-first format [1, 3, H, W]
-        int rIndex = 0;
-        int gIndex = AppConfig.inputSize * AppConfig.inputSize;
-        int bIndex = 2 * AppConfig.inputSize * AppConfig.inputSize;
+        // NCHW structure: [1, 3, 300, 300]
+        var channelR = List.generate(
+            AppConfig.inputSize, (_) => Float32List(AppConfig.inputSize));
+        var channelG = List.generate(
+            AppConfig.inputSize, (_) => Float32List(AppConfig.inputSize));
+        var channelB = List.generate(
+            AppConfig.inputSize, (_) => Float32List(AppConfig.inputSize));
 
         for (var y = 0; y < AppConfig.inputSize; y++) {
           for (var x = 0; x < AppConfig.inputSize; x++) {
             final pixel = resized.getPixel(x, y);
-            input[rIndex++] = ((pixel.r / 255.0) - mean[0]) / std[0];
-            input[gIndex++] = ((pixel.g / 255.0) - mean[1]) / std[1];
-            input[bIndex++] = ((pixel.b / 255.0) - mean[2]) / std[2];
+            channelR[y][x] = ((pixel.r / 255.0) - mean[0]) / std[0];
+            channelG[y][x] = ((pixel.g / 255.0) - mean[1]) / std[1];
+            channelB[y][x] = ((pixel.b / 255.0) - mean[2]) / std[2];
           }
         }
+        inputStructure = [
+          [channelR, channelG, channelB]
+        ];
       } else {
-        // NHWC: Channel-last format [1, H, W, 3]
-        int pixelIndex = 0;
+        // NHWC structure: [1, 300, 300, 3]
+        var imageGrid = List.generate(
+          AppConfig.inputSize,
+          (_) => List.generate(AppConfig.inputSize, (_) => Float32List(3)),
+        );
+
         for (var y = 0; y < AppConfig.inputSize; y++) {
           for (var x = 0; x < AppConfig.inputSize; x++) {
             final pixel = resized.getPixel(x, y);
-            input[pixelIndex++] = ((pixel.r / 255.0) - mean[0]) / std[0];
-            input[pixelIndex++] = ((pixel.g / 255.0) - mean[1]) / std[1];
-            input[pixelIndex++] = ((pixel.b / 255.0) - mean[2]) / std[2];
+            imageGrid[y][x][0] = ((pixel.r / 255.0) - mean[0]) / std[0];
+            imageGrid[y][x][1] = ((pixel.g / 255.0) - mean[1]) / std[1];
+            imageGrid[y][x][2] = ((pixel.b / 255.0) - mean[2]) / std[2];
           }
         }
+        inputStructure = [imageGrid];
       }
 
       // 4. Generate the output array matching the 23-class layout
-      var output = Float32List(1 * AppConfig.numClasses)
-          .reshape([1, AppConfig.numClasses]);
+      var output = List.generate(1, (_) => Float32List(AppConfig.numClasses));
 
-      // 5. Run interpreter inference
-      // The input buffer is already in the correct format based on our population logic
+      // 5. Run interpreter inference with structured inputs
       try {
-        _interpreter!.run(input, output);
+        _interpreter!.run(inputStructure, output);
         print('[TFLite] Inference completed successfully');
       } catch (e) {
         print('[TFLite] Direct run failed: $e');
-        // Last resort: try reshaping
-        try {
-          _interpreter!.run(input.reshape(shape), output);
-          print('[TFLite] Reshape attempt succeeded');
-        } catch (reshapeError) {
-          print('[TFLite] Reshape also failed: $reshapeError');
-          rethrow;
-        }
+        rethrow;
       }
 
       // 6. Map logit array positions via Softmax computation
