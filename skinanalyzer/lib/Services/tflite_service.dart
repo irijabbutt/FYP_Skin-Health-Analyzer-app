@@ -72,8 +72,6 @@ class TFLiteService {
         isNCHW = (shape[1] == 3); // If second dim is 3, likely NCHW
       }
 
-      final input =
-          Float32List(1 * AppConfig.inputSize * AppConfig.inputSize * 3);
 
       // ImageNet standardization benchmarks
       const List<double> mean = [0.485, 0.456, 0.406];
