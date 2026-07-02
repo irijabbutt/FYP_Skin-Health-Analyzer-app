@@ -57,7 +57,8 @@ class TFLiteService {
       // 2. Identify the target shape layout configuration
       final inputTensor = _interpreter!.getInputTensor(0);
       final shape = inputTensor.shape;
-      final bool isNCHW = (shape.length > 1 && shape[1] == 3);
+      final bool isNCHW = (shape[1] ==
+          3); // Evaluates to true if converted with Channel-First structure
 
       final input =
           Float32List(1 * AppConfig.inputSize * AppConfig.inputSize * 3);
@@ -96,20 +97,8 @@ class TFLiteService {
       var output = Float32List(1 * AppConfig.numClasses)
           .reshape([1, AppConfig.numClasses]);
 
-      // 5. Reshape input to match the model's expected input shape
-      List<int> inputShape = shape;
-      List inputReshaped;
-      
-      if (isNCHW) {
-        // NCHW format: reshape flat input to [1, 3, 300, 300]
-        inputReshaped = input.reshape(inputShape);
-      } else {
-        // NHWC format: reshape flat input to [1, 300, 300, 3]
-        inputReshaped = input.reshape(inputShape);
-      }
-
-      // 6. Run interpreter inference with properly formatted input
-      _interpreter!.run(inputReshaped, output);
+      // 5. Run interpreter inference using the detected shape signature
+      _interpreter!.run(input.reshape(shape), output);
 
       // 7. Map logit array positions via Softmax computation
       List<double> rawScores = List<double>.from(output[0]);
