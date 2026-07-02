@@ -16,8 +16,7 @@ class AppConfig {
       'https://n8n.ddukan.pk/webhook/SHA-recommendations';
 
   // Updated target asset path for the new dynamic range quantized model
-  static const String tfliteModelPath =
-      'skinanalyzer/assets/model/model_dr_quant.tflite';
+  static const String tfliteModelPath = 'assets/model/model_dr_quant.tflite';
   static const int inputSize =
       300; // EfficientNetB3 base target image resolution
   static const int numClasses = 23; // Expanded target matrix capacity
