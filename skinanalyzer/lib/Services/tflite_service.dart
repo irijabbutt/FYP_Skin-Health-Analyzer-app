@@ -54,16 +54,23 @@ class TFLiteService {
         interpolation: img.Interpolation.linear,
       );
 
-      // 2. Identify the target shape layout configuration
+      // 2. Get input tensor and validate shape
       final inputTensor = _interpreter!.getInputTensor(0);
       final shape = inputTensor.shape;
       
-      // Validate shape has at least 2 dimensions
-      if (shape.length < 2) {
-        throw Exception('Invalid tensor shape: shape has fewer than 2 dimensions');
+      print('[TFLite] Input tensor shape: $shape');
+
+      // Validate and determine format
+      if (shape.isEmpty) {
+        throw Exception('Invalid tensor shape: empty');
       }
       
-      final bool isNCHW = (shape[1] == 3); // Evaluates to true if NCHW format
+      // Determine tensor format based on shape
+      // Common formats: [1, 300, 300, 3] (NHWC) or [1, 3, 300, 300] (NCHW)
+      bool isNCHW = false;
+      if (shape.length >= 4) {
+        isNCHW = (shape[1] == 3); // If second dim is 3, likely NCHW
+      }
 
       final input =
           Float32List(1 * AppConfig.inputSize * AppConfig.inputSize * 3);
@@ -74,6 +81,7 @@ class TFLiteService {
 
       // 3. Populate and normalize the tensor array sequentially
       if (isNCHW) {
+        // NCHW: Channel-first format [1, 3, H, W]
         int rIndex = 0;
         int gIndex = AppConfig.inputSize * AppConfig.inputSize;
         int bIndex = 2 * AppConfig.inputSize * AppConfig.inputSize;
@@ -87,6 +95,7 @@ class TFLiteService {
           }
         }
       } else {
+        // NHWC: Channel-last format [1, H, W, 3]
         int pixelIndex = 0;
         for (var y = 0; y < AppConfig.inputSize; y++) {
           for (var x = 0; x < AppConfig.inputSize; x++) {
@@ -102,13 +111,21 @@ class TFLiteService {
       var output = Float32List(1 * AppConfig.numClasses)
           .reshape([1, AppConfig.numClasses]);
 
-      // 5. Run interpreter inference with properly formatted input and output
+      // 5. Run interpreter inference
+      // The input buffer is already in the correct format based on our population logic
       try {
-        _interpreter!.run(input.reshape(shape), output);
-      } catch (e) {
-        // If reshape fails, try passing the input directly
-        print('[TFLite] Reshape failed, attempting direct run: $e');
         _interpreter!.run(input, output);
+        print('[TFLite] Inference completed successfully');
+      } catch (e) {
+        print('[TFLite] Direct run failed: $e');
+        // Last resort: try reshaping
+        try {
+          _interpreter!.run(input.reshape(shape), output);
+          print('[TFLite] Reshape attempt succeeded');
+        } catch (reshapeError) {
+          print('[TFLite] Reshape also failed: $reshapeError');
+          rethrow;
+        }
       }
 
       // 6. Map logit array positions via Softmax computation
