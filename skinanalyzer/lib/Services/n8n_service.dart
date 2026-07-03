@@ -29,7 +29,10 @@ class N8nService {
   }) async {
     // Skip AI recommendations for undetected / special labels
     if (condition == AppConfig.labelDiseaseUndetected ||
-        condition == 'Healthy Skin') {
+        condition == 'Healthy Skin' ||
+        condition == 'Normal Skin' ||
+        condition == 'No Skin Issue Detected' ||
+        condition == 'Ink / Henna on Skin') {
       return null;
     }
 
@@ -62,7 +65,8 @@ class N8nService {
         'all_predictions': filteredPredictions,
       };
 
-      print('[n8n] → $condition | user: ${meta?['full_name']} age:${meta?['age']}');
+      print(
+          '[n8n] → $condition | user: ${meta?['full_name']} age:${meta?['age']}');
 
       final response = await http
           .post(
