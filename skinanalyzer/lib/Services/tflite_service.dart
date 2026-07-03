@@ -80,7 +80,7 @@ class TFLiteService {
 
       if (isNCHW) {
         // NCHW: channel-major layout [1, 3, H, W]
-        final channelSize = AppConfig.inputSize * AppConfig.inputSize;
+        const channelSize = AppConfig.inputSize * AppConfig.inputSize;
         for (var y = 0; y < AppConfig.inputSize; y++) {
           for (var x = 0; x < AppConfig.inputSize; x++) {
             final pixel = resized.getPixel(x, y);
