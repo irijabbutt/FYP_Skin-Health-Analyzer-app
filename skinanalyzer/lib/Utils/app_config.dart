@@ -16,7 +16,7 @@ class AppConfig {
       'https://n8n.ddukan.pk/webhook/SHA-recommendations';
 
   // Updated target asset path for the new dynamic range quantized model
-  static const String tfliteModelPath = 'assets/model/model_float16.tflite';
+  static const String tfliteModelPath = 'assets/model/model_float32.tflite';
   static const int inputSize =
       300; // EfficientNetB3 base target image resolution
   static const int numClasses = 23; // Expanded target matrix capacity
@@ -50,7 +50,7 @@ class AppConfig {
 
   static const String labelDiseaseUndetected = 'Condition Undetected';
   static const double confidenceThreshold =
-      0.25; // Aligned with the model validation curve threshold
+      0.50; // Aligned with the model validation curve threshold
   static const int maxRecommendations = 10;
 
   static const Map<String, String> conditionDescriptions = {

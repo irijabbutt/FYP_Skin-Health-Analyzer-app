@@ -54,74 +54,66 @@ class TFLiteService {
         interpolation: img.Interpolation.linear,
       );
 
-      // 2. Get input tensor and validate shape
+// 2. Get input tensor and validate shape
       final inputTensor = _interpreter!.getInputTensor(0);
       final shape = inputTensor.shape;
 
       print('[TFLite] Input tensor shape: $shape');
 
-      // Validate and determine format
       if (shape.isEmpty) {
         throw Exception('Invalid tensor shape: empty');
       }
 
-      // Determine tensor format based on shape
-      // Common formats: [1, 300, 300, 3] (NHWC) or [1, 3, 300, 300] (NCHW)
       bool isNCHW = false;
       if (shape.length >= 4) {
-        isNCHW = (shape[1] == 3); // If second dim is 3, likely NCHW
+        isNCHW = (shape[1] == 3);
       }
 
-
-      // ImageNet standardization benchmarks
       const List<double> mean = [0.485, 0.456, 0.406];
       const List<double> std = [0.229, 0.224, 0.225];
 
-// 3. CHANGE HERE: Create a structured multi-dimensional list matching [1, 300, 300, 3] or [1, 3, 300, 300]
-      List<dynamic> inputStructure;
+      // 3. Build a FLAT Float32List, then reshape — this is the robust
+      //    tflite_flutter pattern that avoids nested List/Float32List
+      //    type-casting issues at native call time.
+      final flatInput =
+          Float32List(1 * AppConfig.inputSize * AppConfig.inputSize * 3);
 
       if (isNCHW) {
-        // NCHW structure: [1, 3, 300, 300]
-        var channelR = List.generate(
-            AppConfig.inputSize, (_) => Float32List(AppConfig.inputSize));
-        var channelG = List.generate(
-            AppConfig.inputSize, (_) => Float32List(AppConfig.inputSize));
-        var channelB = List.generate(
-            AppConfig.inputSize, (_) => Float32List(AppConfig.inputSize));
-
+        // NCHW: channel-major layout [1, 3, H, W]
+        final channelSize = AppConfig.inputSize * AppConfig.inputSize;
         for (var y = 0; y < AppConfig.inputSize; y++) {
           for (var x = 0; x < AppConfig.inputSize; x++) {
             final pixel = resized.getPixel(x, y);
-            channelR[y][x] = ((pixel.r / 255.0) - mean[0]) / std[0];
-            channelG[y][x] = ((pixel.g / 255.0) - mean[1]) / std[1];
-            channelB[y][x] = ((pixel.b / 255.0) - mean[2]) / std[2];
+            final idx = y * AppConfig.inputSize + x;
+            flatInput[idx] = ((pixel.r / 255.0) - mean[0]) / std[0];
+            flatInput[channelSize + idx] =
+                ((pixel.g / 255.0) - mean[1]) / std[1];
+            flatInput[2 * channelSize + idx] =
+                ((pixel.b / 255.0) - mean[2]) / std[2];
           }
         }
-        inputStructure = [
-          [channelR, channelG, channelB]
-        ];
       } else {
-        // NHWC structure: [1, 300, 300, 3]
-        var imageGrid = List.generate(
-          AppConfig.inputSize,
-          (_) => List.generate(AppConfig.inputSize, (_) => Float32List(3)),
-        );
-
+        // NHWC: pixel-major layout [1, H, W, 3]
+        var i = 0;
         for (var y = 0; y < AppConfig.inputSize; y++) {
           for (var x = 0; x < AppConfig.inputSize; x++) {
             final pixel = resized.getPixel(x, y);
-            imageGrid[y][x][0] = ((pixel.r / 255.0) - mean[0]) / std[0];
-            imageGrid[y][x][1] = ((pixel.g / 255.0) - mean[1]) / std[1];
-            imageGrid[y][x][2] = ((pixel.b / 255.0) - mean[2]) / std[2];
+            flatInput[i++] = ((pixel.r / 255.0) - mean[0]) / std[0];
+            flatInput[i++] = ((pixel.g / 255.0) - mean[1]) / std[1];
+            flatInput[i++] = ((pixel.b / 255.0) - mean[2]) / std[2];
           }
         }
-        inputStructure = [imageGrid];
       }
 
-      // 4. Generate the output array matching the 23-class layout
-      var output = List.generate(1, (_) => Float32List(AppConfig.numClasses));
+      final inputStructure = isNCHW
+          ? flatInput.reshape([1, 3, AppConfig.inputSize, AppConfig.inputSize])
+          : flatInput.reshape([1, AppConfig.inputSize, AppConfig.inputSize, 3]);
 
-      // 5. Run interpreter inference with structured inputs
+      // 4. Flat output, reshaped
+      final flatOutput = Float32List(AppConfig.numClasses);
+      final output = flatOutput.reshape([1, AppConfig.numClasses]);
+
+      // 5. Run interpreter inference
       try {
         _interpreter!.run(inputStructure, output);
         print('[TFLite] Inference completed successfully');
@@ -131,7 +123,7 @@ class TFLiteService {
       }
 
       // 6. Map logit array positions via Softmax computation
-      List<double> rawScores = List<double>.from(output[0]);
+      List<double> rawScores = List<double>.from(output[0] as List);
       List<double> probabilities = _softmax(rawScores);
 
       List<TopPrediction> predictions = [];
