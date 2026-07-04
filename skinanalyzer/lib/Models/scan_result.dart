@@ -35,10 +35,13 @@ class OtcProduct {
 // ── N8n Recommendation (strongly typed) ────────
 class N8nRecommendation {
   final String? urgencyNote;
+  final bool seeDoctor;
+  final String? doctorTimeline;
   final List<String> skincareDo;
   final List<String> skincareAvoid;
   final List<String> morningRoutine;
   final List<String> eveningRoutine;
+  final List<String> keyIngredients;
   final List<String> avoidIngredients;
   final List<String> lifestyleTips;
   final List<String> warningSigns;
@@ -47,10 +50,13 @@ class N8nRecommendation {
 
   const N8nRecommendation({
     this.urgencyNote,
+    this.seeDoctor = false,
+    this.doctorTimeline,
     this.skincareDo = const [],
     this.skincareAvoid = const [],
     this.morningRoutine = const [],
     this.eveningRoutine = const [],
+    this.keyIngredients = const [],
     this.avoidIngredients = const [],
     this.lifestyleTips = const [],
     this.warningSigns = const [],
@@ -67,6 +73,17 @@ class N8nRecommendation {
       otcProducts.isEmpty;
 
   factory N8nRecommendation.fromJson(Map<String, dynamic> json) {
+    // n8n's "Extract recommendations" code node emits flat, no-underscore
+    // keys (e.g. "morningroutine", "otcproducts"). Accept BOTH that style
+    // and a snake_case style so this keeps working if the workflow's key
+    // casing ever changes again — first match wins.
+    dynamic pick(List<String> keys) {
+      for (final k in keys) {
+        if (json.containsKey(k) && json[k] != null) return json[k];
+      }
+      return null;
+    }
+
     List<String> _strings(dynamic val) {
       if (val == null) return [];
       if (val is List) return val.map((e) => e.toString()).toList();
@@ -84,26 +101,40 @@ class N8nRecommendation {
       return [];
     }
 
+    bool _bool(dynamic val) {
+      if (val == null) return false;
+      if (val is bool) return val;
+      final s = val.toString().toLowerCase();
+      return s == 'true' || s.contains('yes');
+    }
+
     return N8nRecommendation(
-      urgencyNote: json['urgency_note']?.toString(),
-      skincareDo: _strings(json['skincare_do']),
-      skincareAvoid: _strings(json['skincare_avoid']),
-      morningRoutine: _strings(json['morning_routine']),
-      eveningRoutine: _strings(json['evening_routine']),
-      avoidIngredients: _strings(json['avoid_ingredients']),
-      lifestyleTips: _strings(json['lifestyle_tips']),
-      warningSigns: _strings(json['warning_signs']),
-      otcProducts: _products(json['otc_products']),
-      disclaimer: json['disclaimer']?.toString(),
+      urgencyNote: pick(['urgencynote', 'urgency_note'])?.toString(),
+      seeDoctor: _bool(pick(['seedoctor', 'see_doctor'])),
+      doctorTimeline: pick(['doctortimeline', 'doctor_timeline'])?.toString(),
+      skincareDo: _strings(pick(['skincaredo', 'skincare_do'])),
+      skincareAvoid: _strings(pick(['skincareavoid', 'skincare_avoid'])),
+      morningRoutine: _strings(pick(['morningroutine', 'morning_routine'])),
+      eveningRoutine: _strings(pick(['eveningroutine', 'evening_routine'])),
+      keyIngredients: _strings(pick(['keyingredients', 'key_ingredients'])),
+      avoidIngredients:
+          _strings(pick(['avoidingredients', 'avoid_ingredients'])),
+      lifestyleTips: _strings(pick(['lifestyletips', 'lifestyle_tips'])),
+      warningSigns: _strings(pick(['warningsigns', 'warning_signs'])),
+      otcProducts: _products(pick(['otcproducts', 'otc_products'])),
+      disclaimer: pick(['disclaimer'])?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() => {
         'urgency_note': urgencyNote,
+        'see_doctor': seeDoctor,
+        'doctor_timeline': doctorTimeline,
         'skincare_do': skincareDo,
         'skincare_avoid': skincareAvoid,
         'morning_routine': morningRoutine,
         'evening_routine': eveningRoutine,
+        'key_ingredients': keyIngredients,
         'avoid_ingredients': avoidIngredients,
         'lifestyle_tips': lifestyleTips,
         'warning_signs': warningSigns,

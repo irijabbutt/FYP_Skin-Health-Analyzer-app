@@ -16,19 +16,68 @@ class TFLiteService {
 
   Interpreter? _interpreter;
   bool _isLoaded = false;
+  bool _usingGpu = false;
+
+  /// Whether the currently loaded interpreter is running on the GPU delegate.
+  /// Useful for surfacing in debug UI / logs if predictions look off.
+  bool get isUsingGpu => _usingGpu;
 
   Future<void> loadModel() async {
     if (_isLoaded) return;
+
+    // 1. Try GPU delegate first (Android only — tflite_flutter's GpuDelegateV2
+    //    wraps the Android NNAPI/OpenGL GPU delegate; there is no supported
+    //    Metal/iOS delegate in this package version).
+    //    isPrecisionLossAllowed is explicitly set to FALSE. The library's own
+    //    default already forces max-precision, fast-single-answer inference
+    //    (see GpuDelegateOptionsV2 defaults), which is what we want — but
+    //    the default GPU delegate on some devices/driver versions still
+    //    allows FP16 math for speed. Forcing this explicitly keeps GPU
+    //    output numerically consistent with the CPU path the threshold
+    //    (0.50) was actually calibrated against, instead of shifting
+    //    borderline scores below it and surfacing a false
+    //    "Condition Undetected" result.
+    if (Platform.isAndroid) {
+      try {
+        final gpuDelegate = GpuDelegateV2(
+          options: GpuDelegateOptionsV2(
+            isPrecisionLossAllowed: false,
+          ),
+        );
+        final gpuOptions = InterpreterOptions()..addDelegate(gpuDelegate);
+        _interpreter = await Interpreter.fromAsset(
+          AppConfig.tfliteModelPath,
+          options: gpuOptions,
+        );
+        _interpreter?.allocateTensors();
+        _usingGpu = true;
+        _isLoaded = true;
+        print('[TFLite] GPU delegate initialized (full precision).');
+        return;
+      } catch (e) {
+        // Common causes: device has no compatible GPU driver, or the
+        // customized EfficientNet-B3 graph contains an op the GPU delegate
+        // doesn't support (delegate creation can fail outright in that
+        // case). Either way we must NOT let this bubble up as a broken
+        // interpreter — fall back to CPU.
+        print('[TFLite] GPU delegate unavailable, falling back to CPU: $e');
+        _interpreter = null;
+        _usingGpu = false;
+      }
+    }
+
+    // 2. CPU fallback (also the only path on iOS/desktop in this setup).
     try {
-      final options = InterpreterOptions()..threads = 4;
+      final cpuOptions = InterpreterOptions()..threads = 4;
       _interpreter = await Interpreter.fromAsset(
         AppConfig.tfliteModelPath,
-        options: options,
+        options: cpuOptions,
       );
       _interpreter?.allocateTensors();
       _isLoaded = true;
+      _usingGpu = false;
       print(
-          '[TFLite] Dynamic Range Quantized 23-Class model successfully initialized.');
+          '[TFLite] CPU interpreter initialized (4 threads, full precision).');
     } catch (e) {
       print('[TFLite] Initialization breakdown: $e');
       rethrow;
@@ -135,6 +184,13 @@ class TFLiteService {
       }
 
       predictions.sort((a, b) => b.confidence.compareTo(a.confidence));
+
+      if (predictions.isNotEmpty) {
+        print('[TFLite] delegate=${_usingGpu ? "GPU" : "CPU"} '
+            'top1=${predictions.first.label} '
+            'conf=${predictions.first.confidence.toStringAsFixed(4)} '
+            'threshold=${AppConfig.confidenceThreshold}');
+      }
 
       // Fallback if the top-ranked score fails to clear the threshold boundary
       if (predictions.isNotEmpty &&
