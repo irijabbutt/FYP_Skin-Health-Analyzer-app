@@ -7,13 +7,13 @@
 class AppConfig {
   AppConfig._();
 
-  static const String supabaseUrl = 'https://linyyumczsneiiuwcirk.supabase.co';
+  static const String supabaseUrl = 'SUPABASE_URL';
   static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpbnl5dW1jenNuZWlpdXdjaXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MTEwMDUsImV4cCI6MjA4MzE4NzAwNX0.7xsKyi1KYdUCyEs66T-etErY4IlgOML8jRlB99cmlgA';
+      'SUPABASE_ANON';
 
   static const String scanResultsTable = 'skin_results';
   static const String n8nWebhookUrl =
-      'https://n8n.ddukan.pk/webhook/SHA-recommendations';
+      'N8N_URL';
 
   // Updated target asset path for the new dynamic range quantized model
   static const String tfliteModelPath = 'assets/model/model_float32.tflite';
