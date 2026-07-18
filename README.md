@@ -18,4 +18,5 @@ The end product will be a polished and robust Flutter app for the accurate detec
 
 **Rijab Butt**
 rijabbutt23@gmail.com
+
 https://irijabbutt.github.io/
